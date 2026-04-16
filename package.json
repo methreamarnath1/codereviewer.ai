@@ -1,0 +1,54 @@
+{
+  "name": "codereviewerai",
+  "version": "1.3.2",
+  "description": "codereviewer.ai - AI-powered code review tool for developers",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "awd": "./bin/awesomediagns.js",
+    "awesomediagns": "./bin/awesomediagns.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "code-review",
+    "ai",
+    "cli",
+    "productivity",
+    "git",
+    "llm",
+    "automation"
+  ],
+  "author": "CodeReviewer.ai Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@google/genai": "^0.3.1",
+    "axios": "^1.6.2",
+    "boxen": "^8.0.1",
+    "chalk": "^5.3.0",
+    "chokidar": "^4.0.1",
+    "commander": "^12.1.0",
+    "conf": "^13.0.2",
+    "dotenv": "^16.4.5",
+    "figlet": "^1.8.0",
+    "gradient-string": "^3.0.0",
+    "inquirer": "^12.0.0",
+    "ora": "^8.1.0",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/figlet": "^1.7.0",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0"
+  }
+}
