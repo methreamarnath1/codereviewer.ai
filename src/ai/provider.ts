@@ -1,5 +1,6 @@
 import axios from 'axios';
 import chalk from 'chalk';
+import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { ChatMessage } from '../core/context.js';
 
@@ -11,6 +12,7 @@ export class AIProvider {
         'gemini-2.0-flash-lite',
         'gemini-1.5-flash',
     ];
+    private grokBaseURL = 'https://api.x.ai/v1';
 
 
     constructor(configManager: any) {
@@ -35,6 +37,8 @@ export class AIProvider {
                     return await this.reviewWithOpenAI(prompt);
                 case 'claude':
                     return await this.reviewWithClaude(prompt);
+                case 'grok':
+                    return await this.reviewWithGrok(prompt);
                 default:
                     throw new Error('No AI provider configured. Run "awd init"');
             }
@@ -56,6 +60,8 @@ export class AIProvider {
                     return await this.chatWithOpenAI(message, history);
                 case 'claude':
                     return await this.chatWithClaude(message, history);
+                case 'grok':
+                    return await this.chatWithGrok(message, history);
                 default:
                     throw new Error('No AI provider configured. Run "awd init"');
             }
@@ -165,6 +171,113 @@ export class AIProvider {
         return JSON.parse(this.cleanJSON(response.data.content[0].text));
     }
 
+    private async reviewWithGrok(prompt: string) {
+        const response = await axios.post(
+            `${this.grokBaseURL}/chat/completions`,
+            {
+                model: this.config.model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 2000
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${this.config.apiKey}`
+                }
+            }
+        );
+
+        const text = response.data?.choices?.[0]?.message?.content || response.data?.output?.[0]?.content?.[0]?.text || '';
+        return JSON.parse(this.cleanJSON(text));
+    }
+
+    async getFixPatches(code: string, filePath: string): Promise<string> {
+        const prompt = this.buildPatchPrompt(code, filePath);
+
+        switch (this.config.provider) {
+            case 'gemini':
+                return await this.reviewPatchesWithGemini(prompt);
+            case 'openai':
+                return await this.reviewPatchesWithOpenAI(prompt);
+            case 'claude':
+                return await this.reviewPatchesWithClaude(prompt);
+            case 'grok':
+                return await this.reviewPatchesWithGrok(prompt);
+            default:
+                throw new Error('No AI provider configured. Run "awd init"');
+        }
+    }
+
+    private buildPatchPrompt(code: string, filePath: string): string {
+        const fileType = path.extname(filePath).replace('.', '') || 'code';
+        return 'You are a code fixer. Review this ' + fileType + ' code and provide ONLY the fixes.\n\n' +
+            'For each fixable issue, respond EXACTLY in this format:\n' +
+            '---FIX_START---\n' +
+            'ISSUE: Brief description of the issue\n' +
+            'ORIGINAL: The problematic code snippet\n' +
+            'FIXED: The corrected code snippet\n' +
+            '---FIX_END---\n\n' +
+            'Do NOT include any other text.\n\n' +
+            'Code to review:\n' +
+            '```' + fileType + '\n' +
+            code + '\n' +
+            '```';
+    }
+
+    private async reviewPatchesWithGemini(prompt: string): Promise<string> {
+        if (!this.genAI) {
+            throw new Error('Google GenAI not initialized. Check your API key.');
+        }
+
+        const response = await this.genAI.models.generateContent({
+            model: this.config.model,
+            contents: prompt
+        });
+        return response.text || '';
+    }
+
+    private async reviewPatchesWithOpenAI(prompt: string): Promise<string> {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: this.config.model || 'gpt-4-turbo-preview',
+            messages: [{ role: 'user', content: prompt }]
+        }, {
+            headers: { Authorization: `Bearer ${this.config.apiKey}` }
+        });
+        return response.data.choices?.[0]?.message?.content || '';
+    }
+
+    private async reviewPatchesWithClaude(prompt: string): Promise<string> {
+        const response = await axios.post('https://api.anthropic.com/v1/messages', {
+            model: this.config.model || 'claude-3-sonnet-20240229',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }]
+        }, {
+            headers: {
+                'x-api-key': this.config.apiKey,
+                'anthropic-version': '2023-06-01'
+            }
+        });
+        return response.data.content?.[0]?.text || '';
+    }
+
+    private async reviewPatchesWithGrok(prompt: string): Promise<string> {
+        const response = await axios.post(
+            `${this.grokBaseURL}/chat/completions`,
+            {
+                model: this.config.model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 2000
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${this.config.apiKey}`
+                }
+            }
+        );
+        return response.data?.choices?.[0]?.message?.content || response.data?.output?.[0]?.content?.[0]?.text || '';
+    }
+
     private async chatWithGemini(message: string, history: ChatMessage[]): Promise<string> {
         if (!this.genAI) {
             throw new Error('Google GenAI not initialized. Check your API key.');
@@ -237,6 +350,25 @@ export class AIProvider {
             }
         });
         return response.data.content[0].text;
+    }
+
+    private async chatWithGrok(message: string, history: ChatMessage[]): Promise<string> {
+        const prompt = this.buildChatPrompt(message, history);
+        const response = await axios.post(
+            `${this.grokBaseURL}/chat/completions`,
+            {
+                model: this.config.model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 2000
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${this.config.apiKey}`
+                }
+            }
+        );
+        return response.data?.choices?.[0]?.message?.content || response.data?.output?.[0]?.content?.[0]?.text || '';
     }
 
     private buildChatPrompt(message: string, history: ChatMessage[]): string {

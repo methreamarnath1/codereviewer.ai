@@ -5,7 +5,7 @@ import fs from 'fs';
 
 // 1. Defined a strict schema for the config to prevent type errors
 export interface AppConfig {
-    provider: 'openai' | 'gemini' | 'claude';
+    provider: 'openai' | 'gemini' | 'claude' | 'grok';
     apiKey: string;
     model: string;
     reviewDepth: 'quick' | 'deep';

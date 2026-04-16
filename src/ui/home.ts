@@ -37,7 +37,7 @@ export const homePage = {
         }
         
         console.log(chalk.gray('————————————————————————————————————————————————————————————————————'));
-        console.log(chalk.white('  Advanced AI Analysis • Performance Optimization • Security Audit'));
+        console.log(chalk.white('  AI-Powered Code Review • Auto-Fix Patches • Multi-Provider Support'));
         console.log(chalk.gray('————————————————————————————————————————————————————————————————————\n'));
     },
 
@@ -45,14 +45,17 @@ export const homePage = {
      * Shows a clean list of available commands
      */
     displayQuickHelp: () => {
-        console.log(chalk.bold.white('📂 GETTING STARTED'));
-        console.log(`  ${chalk.green('awd init')}        ${chalk.gray('→ Setup your API keys and provider')}`);
+        console.log(chalk.bold.white('� QUICK START'));
+        console.log(`  ${chalk.green('awd init')}        ${chalk.gray('→ Setup API keys (Gemini, OpenAI, Claude, Grok)')}`);
         console.log(`  ${chalk.green('awd review')}      ${chalk.gray('→ Review staged changes in Git')}`);
+        console.log(`  ${chalk.green('awd review --patch')} ${chalk.gray('→ Auto-fix issues with AI patches')}`);
         console.log(`  ${chalk.green('awd watch')}       ${chalk.gray('→ Enable real-time auto-review mode')}`);
         console.log(`  ${chalk.green('awd chat')}        ${chalk.gray('→ Discuss results with the AI assistant')}\n`);
 
-        console.log(chalk.bold.white('⚙️  SYSTEM'));
-        console.log(`  ${chalk.green('awd status')}      ${chalk.gray('→ Show current configuration')}`);
+        console.log(chalk.bold.white('🛠️  ADVANCED FEATURES'));
+        console.log(`  ${chalk.green('awd clean-history')} ${chalk.gray('→ Delete all review and chat history')}`);
+        console.log(`  ${chalk.green('awd review --patch-all')} ${chalk.gray('→ Auto-patch all files in project')}`);
+        console.log(`  ${chalk.green('awd config')}     ${chalk.gray('→ Change provider or settings')}`);
         console.log(`  ${chalk.green('awd history')}     ${chalk.gray('→ View previous review scores')}\n`);
         
         console.log(chalk.hex('#00FF41')('Ready for input...'));

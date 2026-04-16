@@ -6,6 +6,9 @@ import { ConfigManager } from './config/manager.js';
 import { ReviewEngine } from './core/reviewer.js';
 import { FileWatcher } from './core/watcher.js';
 import { ChatInterface } from './ui/chat.js';
+import { AutoPatcher } from './core/patcher.js';
+import { AIProvider } from './ai/provider.js';
+import { simpleGit } from 'simple-git';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -56,17 +59,88 @@ program
     }
   });
 
+program
+  .command('clean-history')
+  .alias('clean')
+  .description('Delete all review and chat history')
+  .option('--confirm', 'Skip confirmation prompt')
+  .action(async (options) => {
+    if (!configManager.isConfigured()) {
+      console.log(chalk.red('\n❌ Not configured! Run: ') + chalk.white('awd init'));
+      return;
+    }
+
+    const { default: inquirer } = await import('inquirer');
+    if (!options.confirm) {
+      const { confirmed } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirmed',
+          message: chalk.yellow('⚠️  Delete all history? This cannot be undone!'),
+          default: false
+        }
+      ]);
+
+      if (!confirmed) {
+        console.log(chalk.blue('ℹ️  Cancelled'));
+        return;
+      }
+    }
+
+    try {
+      const reviewer = new ReviewEngine(configManager);
+      await reviewer.clearHistory();
+      console.log(chalk.green('✅ History cleared successfully'));
+    } catch (error: any) {
+      console.error(chalk.red(`❌ Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
 // --- 3. Code Review ---
 program
   .command('review [file]')
   .description('Review staged changes or a specific file')
   .option('-s, --staged', 'Review only files in git staging area', true)
+  .option('--patch', 'Apply automatic fixes')
+  .option('--patch-all', 'Patch all files in the project')
   .action(async (file, options) => {
     if (!configManager.isConfigured()) {
       console.log(chalk.red('\n❌ Not configured! Run: ') + chalk.white('awd init'));
       return;
     }
+
     const reviewer = new ReviewEngine(configManager);
+    const patcher = new AutoPatcher();
+    const aiProvider = new AIProvider(configManager);
+
+    const shouldPatch = options.patch || options.patchAll;
+    const usePatchAll = options.patchAll;
+
+    if (shouldPatch) {
+      let filesToPatch: string[] = [];
+
+      if (usePatchAll) {
+        filesToPatch = await gatherProjectFiles(process.cwd());
+      } else if (file) {
+        filesToPatch = [file];
+      } else if (options.staged) {
+        const git = simpleGit();
+        const status = await git.status();
+        filesToPatch = status.staged;
+      }
+
+      if (filesToPatch.length === 0) {
+        console.log(chalk.yellow('No files found to patch. Provide a file or stage changes.'));
+        return;
+      }
+
+      for (const targetFile of filesToPatch) {
+        await patcher.reviewAndPatch(targetFile, aiProvider);
+      }
+      return;
+    }
+
     if (file) {
       await reviewer.reviewFile(file);
     } else {
@@ -105,5 +179,27 @@ program.on('command:*', () => {
   console.error(chalk.red('\nInvalid command: %s\nSee --help for a list of available commands.'), program.args.join(' '));
   process.exit(1);
 });
+
+async function gatherProjectFiles(basePath: string): Promise<string[]> {
+  const files: string[] = [];
+  const extensions = ['.js', '.ts', '.jsx', '.tsx', '.py', '.go', '.java', '.cs', '.cpp', '.c', '.php', '.rs', '.json', '.html', '.css'];
+  const ignored = ['node_modules', 'dist', '.git', '.awesomediagns'];
+
+  async function walk(directory: string) {
+    const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (ignored.includes(entry.name)) continue;
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (extensions.includes(path.extname(entry.name))) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  await walk(basePath);
+  return files;
+}
 
 program.parse(process.argv);

@@ -13,7 +13,7 @@ export class ConfigWizard {
      * The main setup flow for a new user
      */
     async runSetup(): Promise<void> {
-        console.log(chalk.cyan.bold('\n✨  codereviewer.ai Setup Wizard ✨'));
+        console.log(chalk.cyan.bold('\n✨codereviewer.ai Setup Wizard ✨'));
         console.log(chalk.gray('Let\'s configure your AI preferences.\n'));
 
         const initialAnswers = await inquirer.prompt([
@@ -24,7 +24,8 @@ export class ConfigWizard {
                 choices: [
                     { name: 'Google Gemini (Fast & Large Context)', value: 'gemini' },
                     { name: 'OpenAI (GPT-4o)', value: 'openai' },
-                    { name: 'Anthropic (Claude 3.5 Sonnet)', value: 'claude' }
+                    { name: 'Anthropic (Claude 3.5 Sonnet)', value: 'claude' },
+                    { name: 'Grok (xAI)', value: 'grok' }
                 ]
             },
             {
@@ -36,7 +37,7 @@ export class ConfigWizard {
             }
         ]);
 
-        // Add model selection for Gemini
+        // Add model selection for Gemini and Grok
         let modelAnswer = { model: 'gemini-2.5-flash-lite' };
         if (initialAnswers.provider === 'gemini') {
             modelAnswer = await inquirer.prompt([
@@ -45,10 +46,23 @@ export class ConfigWizard {
                     name: 'model',
                     message: 'Select your preferred Gemini model:',
                     choices: [
-                        { name: 'Gemini 2.5 Flash (Free tier, large context)', value: 'gemini-2.5-flash-lite' },
+                        { name: 'Gemini 2.5 Flash (Free tier, large context)', value: 'gemini-2.5-flash-lite' }
                     ]
                 }
-            ]); 
+            ]);
+        } else if (initialAnswers.provider === 'grok') {
+            modelAnswer = await inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'model',
+                    message: 'Select your preferred Grok model:',
+                    choices: [
+                        { name: 'grok-3', value: 'grok-3' },
+                        { name: 'grok-2', value: 'grok-2' },
+                        { name: 'grok-vision', value: 'grok-vision' }
+                    ]
+                }
+            ]);
         }
 
         const additionalAnswers = await inquirer.prompt([
@@ -78,6 +92,7 @@ export class ConfigWizard {
         let defaultModel = answers.model || 'gemini-2.0-flash-exp';
         if (answers.provider === 'openai') defaultModel = 'gpt-4o';
         if (answers.provider === 'claude') defaultModel = 'claude-3-5-sonnet-20240620';
+        if (answers.provider === 'grok') defaultModel = answers.model || 'grok-3';
 
         // Save everything to the manager
         this.manager.setFullConfig({
