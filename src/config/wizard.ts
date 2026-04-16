@@ -13,7 +13,7 @@ export class ConfigWizard {
      * The main setup flow for a new user
      */
     async runSetup(): Promise<void> {
-        console.log(chalk.cyan.bold('\n✨ codereviewer.ai Setup Wizard ✨'));
+        console.log(chalk.cyan.bold('\n✨  codereviewer.ai Setup Wizard ✨'));
         console.log(chalk.gray('Let\'s configure your AI preferences.\n'));
 
         const initialAnswers = await inquirer.prompt([
