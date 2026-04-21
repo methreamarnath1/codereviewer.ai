@@ -97,6 +97,41 @@ program
     }
   });
 
+// --- History ---
+program
+  .command('history')
+  .description('View review history')
+  .option('-l, --limit <number>', 'Limit number of entries', '10')
+  .action(async (options) => {
+    if (!configManager.isConfigured()) {
+      console.log(chalk.red('\n❌ Not configured! Run: ') + chalk.white('awd init'));
+      return;
+    }
+
+    try {
+      const reviewer = new ReviewEngine(configManager);
+      const history = await reviewer.getHistory(parseInt(options.limit));
+
+      if (history.length === 0) {
+        console.log(chalk.yellow('📭 No review history found.'));
+        return;
+      }
+
+      console.log(chalk.blue('\n📊 Review History:\n'));
+
+      history.forEach((entry, index) => {
+        const date = new Date(entry.timestamp).toLocaleString();
+        const score = entry.score ? `Score: ${entry.score}/10` : 'No score';
+        console.log(`${index + 1}. ${chalk.green(entry.file)}`);
+        console.log(`   ${chalk.gray(date)} | ${chalk.cyan(score)}`);
+        console.log(`   ${chalk.white(entry.review?.summary || 'No summary')}\n`);
+      });
+    } catch (error: any) {
+      console.error(chalk.red(`❌ Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
 // --- 3. Code Review ---
 program
   .command('review [file]')

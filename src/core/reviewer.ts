@@ -120,6 +120,10 @@ export class ReviewEngine {
         }));
     }
 
+    async getHistory(limit: number = 10): Promise<any[]> {
+        return await this.contextManager.getHistory(limit);
+    }
+
     async clearHistory(): Promise<void> {
         await this.contextManager.clearHistory();
         console.log(chalk.green('✅ Local history cleared.'));
